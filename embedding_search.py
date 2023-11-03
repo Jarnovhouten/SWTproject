@@ -21,14 +21,15 @@ def create_graph(rdf_url):
 
         # Iterate through RDF triples and add nodes and edges to the NetworkX graph
         for subj, pred, obj in g:
-        rdf_graph.add_node(subj)
-        rdf_graph.add_node(obj)
-        rdf_graph.add_edge(subj, obj, predicate=pred)
-    
+            rdf_graph.add_node(subj)
+            rdf_graph.add_node(obj)
+            rdf_graph.add_edge(subj, obj, predicate=pred)
+        return rdf_graph 
     else:
         print("Failed to fetch RDF data from the URL.")
-
-    return rdf_graph
+        exit()
+   
+    
 
     
 if __name__ == "__main__":
