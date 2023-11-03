@@ -19,7 +19,24 @@ def get_recommendations(user_query):
     if intent == 'album':
         pass
     elif intent == 'artist':
-        pass
+        sparql_query = """
+        PREFIX wsb: <http://ns.inria.fr/wasabi/ontology/>
+        PREFIX foat: <http://xmlns.com/foaf/0.1/>
+        
+        SELECT DISTINCT ?Name
+        WHERE {
+        {?Artist a wsb:Artist_Person ; foaf:name ?Name . }
+        UNION
+        {?Artist a wsb:Artist_Group ; foaf:name ?Name . }
+        }
+        ORDER BY RAND()
+        LIMIT 10
+        """
+        results = query_sparql_endpoint(sparql_query)
+        print("here are 10 random artists:")
+        for name_obj in results:
+            name = name_obj['name']['value']
+            print(name)
     elif intent == 'song':
         # example sparql query to get 10 random song titles from wasabi kg
         sparql_query = """
