@@ -35,7 +35,7 @@ def get_recommendations(user_query):
         results = query_sparql_endpoint(sparql_query)
         print("here are 10 random artists:")
         for name_obj in results:
-            name = name_obj['name']['value']
+            name = name_obj['Name']['value']
             print(name)
     elif intent == 'song':
         # example sparql query to get 10 random song titles from wasabi kg
