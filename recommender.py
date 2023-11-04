@@ -1,16 +1,55 @@
 import click
 import requests
+import joblib
+import numpy as np
 
 def classify_intent(query):
     # Classify intent:
     # What does user want recommended? Album, artist, songs, ..?
-    return 'song'
+    if 'song' in query:
+        return 'song'
+    elif 'artist' in query:
+        return 'artist'
+    elif 'album' in query:
+        return 'album'
 
-def find_similar(sim_to, number=1):
+def find_similar(rec_type, sim_to, number=1):
     # Find similar items based on embeddings
-    # sim_to: album / arist / song
+    # rec_type: album / arist / song
+    # sim_to: name of album / artist / song to use as reference
     # number: number of items returned
-    pass
+    if rec_type == 'artist':
+        sparql_query = """
+            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+            PREFIX wsb: <http://ns.inria.fr/wasabi/ontology/>
+
+            SELECT ?artistURI
+            WHERE {{
+                {{
+                ?artistURI a wsb:Artist_Group ;
+                        rdfs:label "{artist}" .
+                }}
+                UNION
+                {{
+                ?artistURI a wsb:Artist_Person ;
+                        rdfs:label "{artist}" .
+                }}
+            }}
+            """.format(artist=sim_to)
+        results = query_sparql_endpoint(sparql_query)
+        if results:
+            artistURI = results[0]["artistURI"]["value"]
+        else:
+            print("No results found for the artist.")
+
+    knn_model = joblib.load('embeddings/knn_model.pkl')
+    entities = np.load('embeddings/artist_entities.npy')
+    embeddings = np.load('embeddings/artist_embeddings_noab.npy')
+    query_embedding = embeddings[np.argmax(entities==artistURI)].reshape(1, -1)
+    distances, indices = knn_model.kneighbors(query_embedding, n_neighbors=number)
+    for i in indices:
+        print(entities[i])
+
 
 def get_recommendations(user_query):
     intent = classify_intent(user_query)
@@ -65,7 +104,11 @@ def query_sparql_endpoint(query):
     return results['results']['bindings']
 
 if __name__ == '__main__':
-    query = click.prompt('Hi! How can I help?\n', type=str)
+    # query = click.prompt('Hi! How can I help?\n', type=str)
     # right now, whatever you type in will get you 10 random songs
-    get_recommendations(query)
     
+    # get_recommendations(query)
+
+    # print()
+    
+    find_similar('artist', 'Ed Sheeran', 3)
