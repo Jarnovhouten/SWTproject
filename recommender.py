@@ -21,20 +21,24 @@ def classify_intent(query):
         classify_intent(follow_up)
     
 def match_to_list(query, name_list):
+    # Convert name_list to lowercase for case-insensitive matching
+    lowercase_name_list = [name.lower() for name in name_list]
     # Regular expression to match names
-    pattern = r'\b(?:' + '|'.join(re.escape(name) for name in name_list) + r')\b'
+    pattern = r'\b(?:' + '|'.join(re.escape(name) for name in lowercase_name_list) + r')\b'
     
     # convert query to list
     words = query.split()
-    # search over increasingly more words starting from the last word of the list
+   
     for i in range(len(words)):
         index = i+1
         wordlist = words[-index:]
-        word_string = ' '.join(wordlist)
-        match = re.findall(pattern, word_string, re.IGNORECASE)
+        word_string = ' '.join(wordlist).lower() #for case insensitve matching
+        match = re.findall(pattern, word_string)
+    
         # Stop searching once a match is found
-        if match != []:
-            return match
+        if match:
+            matched_index = lowercase_name_list.index(match[0])
+            return name_list[matched_index]
 
 def get_number(query):
     # Convert textual representations of numbers into digits
@@ -157,7 +161,7 @@ def get_recommendations(user_query):
             artist_list = json.load(json_file)
         artist = match_to_list(query, artist_list)
         if artist:
-            similar = find_similar('artist', artist[0], 3)
+            similar = find_similar('artist', artist, 3)
             print('Here are 3 artists similar to {}:'.format(artist[0]))
             for artist in similar:
                 print(artist)
@@ -187,7 +191,7 @@ def get_recommendations(user_query):
             album_list = json.load(json_file)
         album = match_to_list(query, album_list)
         if album:
-            similar = find_similar('album', album[0], 3)
+            similar = find_similar('album', album, 3)
             print('Here are 3 albums similar to {}:'.format(album[0]))
             for album in similar:
                 print(album)
