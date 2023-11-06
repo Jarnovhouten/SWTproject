@@ -19,11 +19,19 @@ def classify_intent(query):
         classify_intent(follow_up)
     
 def match_to_list(query, name_list):
-    #regular expression to match names
+    # Regular expression to match names
     pattern = r'\b(?:' + '|'.join(re.escape(name) for name in name_list) + r')\b'
-    # find all matches within the query based on the regular expression, case insensitive
-    matches = re.findall(pattern, query, re.IGNORECASE)
-    return(matches)
+    
+    # convert query to list
+    words = query.split()
+    # search over increasingly more words, starting from the last word of the string
+    for i in range(len(words)):
+        index = i+1
+        wordlist = words[-index:]
+        word_string = ' '.join(wordlist)
+        matches = re.findall(pattern, word_string, re.IGNORECASE)
+        if matches != []:
+            return matches
 
 
 def find_similar(rec_type, sim_to, number=1):
