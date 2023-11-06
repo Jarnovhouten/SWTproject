@@ -4,6 +4,7 @@ import joblib
 import numpy as np
 import json
 import re
+from text_to_num import alpha2digit
 
 def classify_intent(query):
     # Classify intent:
@@ -34,6 +35,15 @@ def match_to_list(query, name_list):
         if match != []:
             return match
 
+def get_number(query):
+    # Use regular expression to find all integer-like patterns in the query
+    digitsquery = alpha2digit(query, lang="en")
+    numbers = [int(match) for match in re.findall(r'\d+', digitsquery)]
+    
+    if numbers:
+        return numbers[0]  # Return the first found number
+    else:
+        return None  # Return None if no numbers were found
 
 def find_similar(rec_type, sim_to, number=1):
     # Find similar items based on embeddings
