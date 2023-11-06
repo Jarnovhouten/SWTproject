@@ -43,7 +43,7 @@ def get_number(query):
     if numbers:
         return numbers[0]  # Return the first found number
     else:
-        return None  # Return None if no numbers were found
+        return 3 # Return 3 by default
 
 def find_similar(rec_type, sim_to, number=1):
     # Find similar items based on embeddings
