@@ -162,7 +162,7 @@ def get_recommendations(user_query):
         artist = match_to_list(query, artist_list)
         if artist:
             similar = find_similar('artist', artist, 3)
-            print('Here are 3 artists similar to {}:'.format(artist[0]))
+            print('Here are 3 artists similar to {}:'.format(artist))
             for artistURI in similar:
                 sparql_query= """
                 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
