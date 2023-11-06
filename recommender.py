@@ -29,9 +29,9 @@ def match_to_list(query, name_list):
         index = i+1
         wordlist = words[-index:]
         word_string = ' '.join(wordlist)
-        matches = re.findall(pattern, word_string, re.IGNORECASE)
-        if matches != []:
-            return matches
+        match = re.findall(pattern, word_string, re.IGNORECASE)
+        if match != []:
+            return match
 
 
 def find_similar(rec_type, sim_to, number=1):
