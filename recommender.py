@@ -36,8 +36,9 @@ def match_to_list(query, name_list):
             return match
 
 def get_number(query):
-    # Use regular expression to find all integer-like patterns in the query
+    # Convert textual representations of numbers into digits
     digitsquery = alpha2digit(query, lang="en")
+    # Use regular expression to find all integer-like patterns in the query
     numbers = [int(match) for match in re.findall(r'\d+', digitsquery)]
     
     if numbers:
