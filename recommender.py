@@ -56,7 +56,23 @@ def get_recommendations(user_query):
 
     # logic for recommendations
     if intent == 'album':
-        pass
+        sparql_query = """
+        PREFIX wsb: <http://ns.inria.fr/wasabi/ontology/>
+        PREFIX dcterms: <http://purl.org/dc/terms/>
+
+        SELECT DISTINCT ?title
+        WHERE {
+        ?album a wsb:Album ;
+                dcterms:title ?title .
+        }
+        ORDER BY RAND()
+        LIMIT 10
+        """
+        results = query_sparql_endpoint(sparql_query)
+        print("here are 10 random albums:")
+        for title_obj in results:
+            title = title_obj['title']['value']
+            print(title)
     elif intent == 'artist':
         sparql_query = """
         PREFIX wsb: <http://ns.inria.fr/wasabi/ontology/>
