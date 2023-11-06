@@ -10,7 +10,7 @@ def classify_intent(query):
     # What does user want recommended? Album, artist, songs, ..?
     if 'song' in query:
         return 'song'
-    elif 'artist' or 'band' in query:
+    elif 'artist' in query:
         return 'artist'
     elif 'album' in query:
         return 'album'
