@@ -72,15 +72,39 @@ def find_similar(rec_type, sim_to, number=1):
         results = query_sparql_endpoint(sparql_query)
         if results:
             artistURI = results[0]["artistURI"]["value"]
+            knn_model = joblib.load('embeddings/artist_knn_model.pkl')
+            entities = np.load('embeddings/artist_entities.npy')
+            embeddings = np.load('embeddings/artist_embeddings_noab.npy')
+            query_embedding = embeddings[np.argmax(entities==artistURI)].reshape(1, -1)
+            distances, indices = knn_model.kneighbors(query_embedding, n_neighbors=number+1)
+            return [entities[i] for i in indices][0][1:]
         else:
             print("No results found for the artist.")
+            
+    elif rec_type == 'album':
+        sparql_query = """
+            PREFIX dcterms: <http://purl.org/dc/terms>
+            PREFIX wsb: <http://ns.inria.fr/wasabi/ontology/>
 
-    knn_model = joblib.load('embeddings/artist_knn_model.pkl')
-    entities = np.load('embeddings/artist_entities.npy')
-    embeddings = np.load('embeddings/artist_embeddings_noab.npy')
-    query_embedding = embeddings[np.argmax(entities==artistURI)].reshape(1, -1)
-    distances, indices = knn_model.kneighbors(query_embedding, n_neighbors=number+1)
-    return [entities[i] for i in indices][0][1:]
+            SELECT ?albumURI
+            WHERE {{
+                {{
+                ?artistURI a wsb:Album ;
+                        rdfs:label "{album}" .
+                }}
+            }}
+            """.format(album=sim_to)
+        results = query_sparql_endpoint(sparql_query)
+        if results:
+            albumURI = results[0]["albumURI"]["value"]
+            knn_model = joblib.load('embeddings/album_knn_model.pkl')
+            entities = np.load('embeddings/album_entities.npy')
+            embeddings = np.load('embeddings/album_embeddings_noab.npy')
+            query_embedding = embeddings[np.argmax(entities==albumURI)].reshape(1, -1)
+            distances, indices = knn_model.kneighbors(query_embedding, n_neighbors=number+1)
+            return [entities[i] for i in indices][0][1:]
+        else:
+            print("No results found for the album.") 
 
 def dict_to_sparql(input_dict):
     sparql_str = ""
