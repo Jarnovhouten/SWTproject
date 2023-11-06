@@ -163,7 +163,17 @@ def get_recommendations(user_query):
         if artist:
             similar = find_similar('artist', artist, 3)
             print('Here are 3 artists similar to {}:'.format(artist[0]))
-            for artist in similar:
+            for artistURI in similar:
+                sparql_query= """
+                PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                PREFIX wsb: <http://ns.inria.fr/wasabi/ontology/>
+
+                SELECT ?name
+                WHERE {
+                <{artistURI}> rdfs:label ?name .
+                    }
+                 """.format(artistURI)   
+                artist=query_sparql_endpoint(sparql_query) 
                 print(artist)
         else: 
             filters = []
