@@ -98,23 +98,23 @@ def find_similar(rec_type, sim_to, number=1):
             
     elif rec_type == 'album':
         sparql_query = """
-            PREFIX dcterms: <http://purl.org/dc/terms>
+            PREFIX dcterms: <http://purl.org/dc/terms/>
             PREFIX wsb: <http://ns.inria.fr/wasabi/ontology/>
 
-            SELECT ?albumURI
+            SELECT DISTINCT ?albumURI
             WHERE {{
-                {{
-                ?artistURI a wsb:Album ;
-                        rdfs:label "{album}" .
-                }}
+            ?albumURI a wsb:Album ;
+                        dcterms:title ?title .
+            FILTER (UCASE(?title) = UCASE("{album}"))
             }}
+
             """.format(album=sim_to)
         results = query_sparql_endpoint(sparql_query)
         if results:
             albumURI = results[0]["albumURI"]["value"]
             knn_model = joblib.load('embeddings/album_knn_model.pkl')
             entities = np.load('embeddings/album_entities.npy')
-            embeddings = np.load('embeddings/album_embeddings_noab.npy')
+            embeddings = np.load('embeddings/album_embeddings.npy')
             query_embedding = embeddings[np.argmax(entities==albumURI)].reshape(1, -1)
             distances, indices = knn_model.kneighbors(query_embedding, n_neighbors=number+1)
             return [entities[i] for i in indices][0][1:]
