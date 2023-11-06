@@ -24,12 +24,13 @@ def match_to_list(query, name_list):
     
     # convert query to list
     words = query.split()
-    # search over increasingly more words, starting from the last word of the string
+    # search over increasingly more words starting from the last word of the string
     for i in range(len(words)):
         index = i+1
         wordlist = words[-index:]
         word_string = ' '.join(wordlist)
         match = re.findall(pattern, word_string, re.IGNORECASE)
+        # Stop searching once a match is found
         if match != []:
             return match
 
