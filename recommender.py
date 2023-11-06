@@ -4,6 +4,7 @@ import joblib
 import numpy as np
 import json
 import re
+import spacy
 from text_to_num import alpha2digit
 
 def classify_intent(query):
@@ -45,6 +46,16 @@ def get_number(query):
         return numbers[0]  # Return the first found number
     else:
         return 3 # Return 3 by default
+    
+def get_location(query):
+    # Returns the first location found in a query
+    nlp = spacy.load('en_core_web_sm')
+    doc = nlp(query)
+    locations = [ent.text for ent in doc.ents if ent.label_ == 'GPE']
+    if locations: 
+        return locations[0]
+    return None
+
 
 def find_similar(rec_type, sim_to, number=1):
     # Find similar items based on embeddings
@@ -106,16 +117,16 @@ def find_similar(rec_type, sim_to, number=1):
         else:
             print("No results found for the album.") 
 
-def dict_to_sparql(input_dict):
+def list_to_sparql(input_list):
     sparql_str = ""
-    for key, value in input_dict.items():
-        sparql_str += f"{key} '{value}' ; "
+    for item in input_list:
+        sparql_str += f"{item} ; "
     sparql_str = sparql_str[:-2] + " ."  
     return sparql_str
 
 def SPARQL_builder(query_type, filters):
     # query_type: 'artist', 'album' or 'song'
-    # filters: dict of filters, e.g. {'schema:genre': 'Pop', 'dcterms:language': 'eng'}
+    # filters: list of filters, e.g. ["schema:genre'Pop'", "dcterms:language 'eng'"}
     prefixes = """
         PREFIX mo: <http://purl.org/ontology/mo/>
         PREFIX schema: <http://schema.org/>
@@ -131,9 +142,9 @@ def SPARQL_builder(query_type, filters):
             {
             ?artist a wsb:Artist_Person;  foaf:name ?Name ;
             """
-        query += dict_to_sparql(filters)
+        query += list_to_sparql(filters)
         query += '}  UNION { ?artist a wsb:Artist_Group; foaf:name ?Name ;'
-        query += dict_to_sparql(filters)
+        query += list_to_sparql(filters)
         query += '} } ORDER BY RAND() LIMIT 3'
         return query
 
@@ -151,20 +162,25 @@ def get_recommendations(user_query):
             for artist in similar:
                 print(artist)
         else: 
-            filters = dict()
+            filters = []
             # Check if there are genres in the query and if so add them to filters dict
             with open('embeddings/Name dictionaries/genres.json', 'r') as json_file: 
                 genre_list = json.load(json_file)
             genre = match_to_list(query, genre_list)
-            filters['schema:genre'] = genre[0]
+            if genre: filters.append("schema:genre '{}'".format(genre[0]))
 
+            # Check for location
+            location = get_location(query)
+            if location:
+                filters.append('wsb:location [ wsb:country "{}" ]'.format(location))
             # Check for other filters
 
             # Build sparql query and get results
-            results = query_sparql_endpoint(SPARQL_builder('artist', filters))
-            for name_obj in results:
-                name = name_obj['Name']['value']
-                print(name)
+            if filters:
+                results = query_sparql_endpoint(SPARQL_builder('artist', filters))
+                for name_obj in results:
+                    name = name_obj['Name']['value']
+                    print(name)
     
     elif intent == "album":
         with open('embeddings/Name dictionaries/albumtitles.json', 'r') as json_file: 
