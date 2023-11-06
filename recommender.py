@@ -150,7 +150,7 @@ def get_recommendations(user_query):
             artist_list = json.load(json_file)
         artist = match_to_list(query, artist_list)
         if artist:
-            similar = find_similar('artist', artist[0], 3)
+            similar = find_similar('artist', artist, 3)
             print('Here are 3 artists similar to {}:'.format(artist[0]))
             for artist in similar:
                 print(artist)
@@ -175,7 +175,7 @@ def get_recommendations(user_query):
             album_list = json.load(json_file)
         album = match_to_list(query, album_list)
         if album:
-            similar = find_similar('album', album[0], 3)
+            similar = find_similar('album', album, 3)
             print('Here are 3 albums similar to {}:'.format(album[0]))
             for album in similar:
                 print(album)
