@@ -71,6 +71,37 @@ def find_similar(rec_type, sim_to, number=1):
     distances, indices = knn_model.kneighbors(query_embedding, n_neighbors=number+1)
     return [entities[i] for i in indices][0][1:]
 
+def dict_to_sparql(input_dict):
+    sparql_str = ""
+    for key, value in input_dict.items():
+        sparql_str += f"{key} '{value}' ; "
+    sparql_str = sparql_str[:-2] + " ."  
+    return sparql_str
+
+def SPARQL_builder(query_type, filters):
+    # query_type: 'artist', 'album' or 'song'
+    # filters: dict of filters, e.g. {'schema:genre': 'Pop', 'dcterms:language': 'eng'}
+    prefixes = """
+        PREFIX mo: <http://purl.org/ontology/mo/>
+        PREFIX schema: <http://schema.org/>
+        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX wsb: <http://ns.inria.fr/wasabi/ontology/>
+        PREFIX dcterms: <http://purl.org/dc/terms/>
+        PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+        """
+    if query_type == 'artist':
+        query = prefixes + """
+            SELECT DISTINCT ?Name 
+            WHERE {
+            {
+            ?artist a wsb:Artist_Person;  foaf:name ?Name ;
+            """
+        query += dict_to_sparql(filters)
+        query += '}  UNION { ?artist a wsb:Artist_Group; foaf:name ?Name ;'
+        query += dict_to_sparql(filters)
+        query += '} } ORDER BY RAND() LIMIT 3'
+        return query
+
 
 def get_recommendations(user_query):
     intent = classify_intent(user_query)
@@ -85,9 +116,20 @@ def get_recommendations(user_query):
             for artist in similar:
                 print(artist)
         else: 
-            # see if there are things in the query like genre, date, etc and use that for sparql query
-            # (working on it :))
-            pass
+            filters = dict()
+            # Check if there are genres in the query and if so add them to filters dict
+            with open('embeddings/Name dictionaries/genres.json', 'r') as json_file: 
+                genre_list = json.load(json_file)
+            genre = match_to_list(query, genre_list)
+            filters['schema:genre'] = genre[0]
+
+            # Check for other filters
+
+            # Build sparql query and get results
+            results = query_sparql_endpoint(SPARQL_builder('artist', filters))
+            for name_obj in results:
+                name = name_obj['Name']['value']
+                print(name)
     elif intent == "album":
         with open('embeddings/Name dictionaries/albumtitles.json', 'r') as json_file: 
             album_list = json.load(json_file)
@@ -96,6 +138,7 @@ def get_recommendations(user_query):
         with open('embeddings/Name dictionaries/songtitles.json', 'r') as json_file: 
             song_list = json.load(json_file)
         song = match_to_list(query, song_list)
+
     # logic for recommendations
     # if intent == 'album':
     #     sparql_query = """
