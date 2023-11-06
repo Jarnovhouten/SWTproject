@@ -10,10 +10,13 @@ def classify_intent(query):
     # What does user want recommended? Album, artist, songs, ..?
     if 'song' in query:
         return 'song'
-    elif 'artist' in query:
+    elif 'artist' or 'band' in query:
         return 'artist'
     elif 'album' in query:
         return 'album'
+    else:
+        follow_up = click.prompt('Im sorry, did you want a song, artist or album recommendation?\n', type=str)
+        classify_intent(follow_up)
     
 def match_to_list(query, name_list):
     #regular expression to match names
