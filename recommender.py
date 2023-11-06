@@ -169,12 +169,12 @@ def get_recommendations(user_query):
                 PREFIX wsb: <http://ns.inria.fr/wasabi/ontology/>
 
                 SELECT ?name
-                WHERE {
+                WHERE {{
                 <{artistURI}> rdfs:label ?name .
-                    }
-                 """.format(artistURI)   
+                    }}
+                 """.format(artistURI=artistURI)   
                 artist=query_sparql_endpoint(sparql_query) 
-                print(artist)
+                print(artist[0]['name']['value'])
         else: 
             filters = []
             # Check if there are genres in the query and if so add them to filters dict
@@ -203,9 +203,18 @@ def get_recommendations(user_query):
         album = match_to_list(query, album_list)
         if album:
             similar = find_similar('album', album, 3)
-            print('Here are 3 albums similar to {}:'.format(album[0]))
-            for album in similar:
-                print(album)
+            print('Here are 3 albums similar to {}:'.format(album))
+            for albumURI in similar:
+                sparql_query= """
+                PREFIX dcterms:  <http://purl.org/dc/terms/>
+
+                SELECT ?title
+                WHERE {{
+                <{albumURI}> dcterms:title ?title .
+                    }}
+                 """.format(albumURI=albumURI)   
+                album=query_sparql_endpoint(sparql_query) 
+                print(album[0]['title']['value'])
     
     elif intent == "song":
         with open('embeddings/Name dictionaries/songtitles.json', 'r') as json_file: 
