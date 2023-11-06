@@ -24,7 +24,7 @@ def match_to_list(query, name_list):
     
     # convert query to list
     words = query.split()
-    # search over increasingly more words starting from the last word of the string
+    # search over increasingly more words starting from the last word of the list
     for i in range(len(words)):
         index = i+1
         wordlist = words[-index:]
