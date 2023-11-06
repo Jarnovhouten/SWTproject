@@ -165,10 +165,17 @@ def get_recommendations(user_query):
             for name_obj in results:
                 name = name_obj['Name']['value']
                 print(name)
+    
     elif intent == "album":
         with open('embeddings/Name dictionaries/albumtitles.json', 'r') as json_file: 
             album_list = json.load(json_file)
         album = match_to_list(query, album_list)
+        if album:
+            similar = find_similar('album', album[0], 3)
+            print('Here are 3 albums similar to {}:'.format(album[0]))
+            for album in similar:
+                print(album)
+    
     elif intent == "song":
         with open('embeddings/Name dictionaries/songtitles.json', 'r') as json_file: 
             song_list = json.load(json_file)
