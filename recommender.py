@@ -64,75 +64,95 @@ def find_similar(rec_type, sim_to, number=1):
         else:
             print("No results found for the artist.")
 
-    knn_model = joblib.load('embeddings/knn_model.pkl')
+    knn_model = joblib.load('embeddings/artist_knn_model.pkl')
     entities = np.load('embeddings/artist_entities.npy')
     embeddings = np.load('embeddings/artist_embeddings_noab.npy')
     query_embedding = embeddings[np.argmax(entities==artistURI)].reshape(1, -1)
-    distances, indices = knn_model.kneighbors(query_embedding, n_neighbors=number)
-    for i in indices:
-        print(entities[i])
+    distances, indices = knn_model.kneighbors(query_embedding, n_neighbors=number+1)
+    return [entities[i] for i in indices][0][1:]
 
 
 def get_recommendations(user_query):
     intent = classify_intent(user_query)
 
+    if intent == "artist":
+        with open('embeddings/Name dictionaries/artistnames.json', 'r') as json_file: 
+            artist_list = json.load(json_file)
+        artist = match_to_list(query, artist_list)
+        if artist:
+            similar = find_similar('artist', artist[0], 3)
+            print('Here are 3 artists similar to {}:'.format(artist[0]))
+            for artist in similar:
+                print(artist)
+        else: 
+            # see if there are things in the query like genre, date, etc and use that for sparql query
+            # (working on it :))
+            pass
+    elif intent == "album":
+        with open('embeddings/Name dictionaries/albumtitles.json', 'r') as json_file: 
+            album_list = json.load(json_file)
+        album = match_to_list(query, album_list)
+    elif intent == "song":
+        with open('embeddings/Name dictionaries/songtitles.json', 'r') as json_file: 
+            song_list = json.load(json_file)
+        song = match_to_list(query, song_list)
     # logic for recommendations
-    if intent == 'album':
-        sparql_query = """
-        PREFIX wsb: <http://ns.inria.fr/wasabi/ontology/>
-        PREFIX dcterms: <http://purl.org/dc/terms/>
+    # if intent == 'album':
+    #     sparql_query = """
+    #     PREFIX wsb: <http://ns.inria.fr/wasabi/ontology/>
+    #     PREFIX dcterms: <http://purl.org/dc/terms/>
 
-        SELECT DISTINCT ?title
-        WHERE {
-        ?album a wsb:Album ;
-                dcterms:title ?title .
-        }
-        ORDER BY RAND()
-        LIMIT 10
-        """
-        results = query_sparql_endpoint(sparql_query)
-        print("here are 10 random albums:")
-        for title_obj in results:
-            title = title_obj['title']['value']
-            print(title)
-    elif intent == 'artist':
-        sparql_query = """
-        PREFIX wsb: <http://ns.inria.fr/wasabi/ontology/>
-        PREFIX foat: <http://xmlns.com/foaf/0.1/>
+    #     SELECT DISTINCT ?title
+    #     WHERE {
+    #     ?album a wsb:Album ;
+    #             dcterms:title ?title .
+    #     }
+    #     ORDER BY RAND()
+    #     LIMIT 10
+    #     """
+    #     results = query_sparql_endpoint(sparql_query)
+    #     print("here are 10 random albums:")
+    #     for title_obj in results:
+    #         title = title_obj['title']['value']
+    #         print(title)
+    # elif intent == 'artist':
+    #     sparql_query = """
+    #     PREFIX wsb: <http://ns.inria.fr/wasabi/ontology/>
+    #     PREFIX foat: <http://xmlns.com/foaf/0.1/>
         
-        SELECT DISTINCT ?Name
-        WHERE {
-        {?Artist a wsb:Artist_Person ; foaf:name ?Name . }
-        UNION
-        {?Artist a wsb:Artist_Group ; foaf:name ?Name . }
-        }
-        ORDER BY RAND()
-        LIMIT 10
-        """
-        results = query_sparql_endpoint(sparql_query)
-        print("here are 10 random artists:")
-        for name_obj in results:
-            name = name_obj['Name']['value']
-            print(name)
-    elif intent == 'song':
-        # example sparql query to get 10 random song titles from wasabi kg
-        sparql_query = """
-        PREFIX wsb: <http://ns.inria.fr/wasabi/ontology/>
-        PREFIX dcterms: <http://purl.org/dc/terms/>
+    #     SELECT DISTINCT ?Name
+    #     WHERE {
+    #     {?Artist a wsb:Artist_Person ; foaf:name ?Name . }
+    #     UNION
+    #     {?Artist a wsb:Artist_Group ; foaf:name ?Name . }
+    #     }
+    #     ORDER BY RAND()
+    #     LIMIT 10
+    #     """
+    #     results = query_sparql_endpoint(sparql_query)
+    #     print("here are 10 random artists:")
+    #     for name_obj in results:
+    #         name = name_obj['Name']['value']
+    #         print(name)
+    # elif intent == 'song':
+    #     # example sparql query to get 10 random song titles from wasabi kg
+    #     sparql_query = """
+    #     PREFIX wsb: <http://ns.inria.fr/wasabi/ontology/>
+    #     PREFIX dcterms: <http://purl.org/dc/terms/>
 
-        SELECT DISTINCT ?title
-        WHERE {
-        ?song a wsb:Song ;
-                dcterms:title ?title .
-        }
-        ORDER BY RAND()
-        LIMIT 10
-            """
-        results = query_sparql_endpoint(sparql_query)
-        print("here are 10 random songs:")
-        for title_obj in results:
-            title = title_obj['title']['value']
-            print(title)
+    #     SELECT DISTINCT ?title
+    #     WHERE {
+    #     ?song a wsb:Song ;
+    #             dcterms:title ?title .
+    #     }
+    #     ORDER BY RAND()
+    #     LIMIT 10
+    #         """
+    #     results = query_sparql_endpoint(sparql_query)
+    #     print("here are 10 random songs:")
+    #     for title_obj in results:
+    #         title = title_obj['title']['value']
+    #         print(title)
 
 
 def query_sparql_endpoint(query):
@@ -143,28 +163,5 @@ def query_sparql_endpoint(query):
 
 if __name__ == '__main__':
     query = click.prompt('Hi! How can I help?\n', type=str)
-    intent = classify_intent(query)
-    if intent == "artist":
-        with open('artistnames.json', 'r') as json_file: 
-            artist_list = json.load(json_file)
-        artist = match_to_list(query, artist_list)
-    elif intent == "album":
-        with open('albumtitles.json', 'r') as json_file: 
-            album_list = json.load(json_file)
-        album = match_to_list(query, album_list)
-    elif intent == "song":
-        with open('songtitles.json', 'r') as json_file: 
-            song_list = json.load(json_file)
-        song = match_to_list(query, song_list)
 
-    
-    
-    # get_recommendations(query)
-
-    # print()
-    
-    #find_similar('artist', 'Ed Sheeran', 3)
-
-    # print()
-    
-    find_similar('artist', 'Ed Sheeran', 3)
+    get_recommendations(query)
