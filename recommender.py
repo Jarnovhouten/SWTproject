@@ -171,7 +171,8 @@ def get_recommendations(user_query):
             with open('embeddings/Name dictionaries/genres.json', 'r') as json_file: 
                 genre_list = json.load(json_file)
             genre = match_to_list(query, genre_list)
-            if genre: filters.append("schema:genre '{}'".format(genre[0]))
+
+            if genre: filters.append("schema:genre '{}'".format(genre))
 
             # Check for location
             location = get_location(query)
