@@ -2,6 +2,8 @@ import click
 import requests
 import joblib
 import numpy as np
+import json
+import re
 
 def classify_intent(query):
     # Classify intent:
@@ -12,6 +14,14 @@ def classify_intent(query):
         return 'artist'
     elif 'album' in query:
         return 'album'
+    
+def match_to_list(query, name_list):
+    #regular expression to match names
+    pattern = r'\b(?:' + '|'.join(re.escape(name) for name in name_list) + r')\b'
+    # find all matches within the query based on the regular expression, case insensitive
+    matches = re.findall(pattern, query, re.IGNORECASE)
+    return(matches)
+
 
 def find_similar(rec_type, sim_to, number=1):
     # Find similar items based on embeddings
@@ -120,10 +130,28 @@ def query_sparql_endpoint(query):
     return results['results']['bindings']
 
 if __name__ == '__main__':
-    # query = click.prompt('Hi! How can I help?\n', type=str)
-    # right now, whatever you type in will get you 10 random songs
+    query = click.prompt('Hi! How can I help?\n', type=str)
+    intent = classify_intent(query)
+    if intent == "artist":
+        with open('artistnames.json', 'r') as json_file: 
+            artist_list = json.load(json_file)
+        artist = match_to_list(query, artist_list)
+    elif intent == "album":
+        with open('albumtitles.json', 'r') as json_file: 
+            album_list = json.load(json_file)
+        album = match_to_list(query, album_list)
+    elif intent == "song":
+        with open('songtitles.json', 'r') as json_file: 
+            song_list = json.load(json_file)
+        song = match_to_list(query, song_list)
+
+    
     
     # get_recommendations(query)
+
+    # print()
+    
+    #find_similar('artist', 'Ed Sheeran', 3)
 
     # print()
     
