@@ -169,9 +169,9 @@ def get_recommendations(user_query):
                 PREFIX wsb: <http://ns.inria.fr/wasabi/ontology/>
 
                 SELECT ?name
-                WHERE {
+                WHERE {{
                 <{artistURI}> rdfs:label ?name .
-                    }
+                    }}
                  """.format(artistURI)   
                 artist=query_sparql_endpoint(sparql_query) 
                 print(artist)
