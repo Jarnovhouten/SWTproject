@@ -159,7 +159,7 @@ def find_similar_artist(artist, number=1, return_uri=False):
             # Turn uris back into artist names through sparql query
             sim_artists = []
             for uri in sim_uris:
-                sparql_query= """
+                sparql_query = """
                     PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
                     SELECT ?name
@@ -189,7 +189,7 @@ def find_similar_album(album, number=1, return_uri=False):
         list: List of items in the form of: artist name - album title.
     if return_uri=True:
         list: List of album URIs."""
-    # Find album URI to find embedding 
+    # Find album URI to find embedding
     sparql_query = """
         PREFIX dcterms: <http://purl.org/dc/terms/>
         PREFIX wsb: <http://ns.inria.fr/wasabi/ontology/>
@@ -211,7 +211,7 @@ def find_similar_album(album, number=1, return_uri=False):
         # Find embedding of given artist and use this to find similar
         # artist uris with knn model
         query_embedding = (
-            embeddings[np.argmax(entities==albumURI)]
+            embeddings[np.argmax(entities == albumURI)]
             .reshape(1, -1)
         )
         _, indices = knn_model.kneighbors(query_embedding,
@@ -221,7 +221,7 @@ def find_similar_album(album, number=1, return_uri=False):
         sim_albums = []
         if not return_uri:
             for uri in sim_uris:
-                sparql_query= """
+                sparql_query = """
                 PREFIX dcterms:  <http://purl.org/dc/terms/>
                 PREFIX wsb: <http://ns.inria.fr/wasabi/ontology/>
                 PREFIX mo: <http://purl.org/ontology/mo/>
@@ -233,10 +233,9 @@ def find_similar_album(album, number=1, return_uri=False):
                     dcterms:title ?title ;
                     mo:performer ?performer .
                 ?performer rdfs:label ?artist .
-                }}
-                    """.format(albumURI=uri)   
+                }}""".format(albumURI=uri)
                 album = query_sparql_endpoint(sparql_query)
-                sim_albums.append(album[0]['artist']['value'] + 
+                sim_albums.append(album[0]['artist']['value'] +
                                   ' - ' + album[0]['title']['value'])
             return sim_albums
         else:
@@ -273,7 +272,7 @@ def find_similar_song(song, number=1):
     LIMIT 1""".format(song=song)
     album = query_sparql_endpoint(sparql_query)[0]['album']['value']
     # If an album is found, find a song from each similar album
-    if album: 
+    if album:
         album_uris = find_similar_album(album=album,
                                         number=number,
                                         return_uri=True)
@@ -297,8 +296,8 @@ def find_similar_song(song, number=1):
                 ORDER BY RAND()
                 LIMIT 1""".format(uri=uri)
             results = query_sparql_endpoint(sparql_query)
-            if results: 
-                similar_songs.append(results[0]['artist']['value']  + 
+            if results:
+                similar_songs.append(results[0]['artist']['value'] +
                                      ' - ' + results[0]['song']['value'])
         return similar_songs
     else:
@@ -329,7 +328,7 @@ def find_similar_song(song, number=1):
                     PREFIX wsb: <http://ns.inria.fr/wasabi/ontology/>
                     PREFIX mo: <http://purl.org/ontology/mo/>
                     PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-                    
+
                     SELECT DISTINCT ?song ?artist
                     WHERE {{
                         ?songURI a wsb:Song;
@@ -341,11 +340,12 @@ def find_similar_song(song, number=1):
                     LIMIT 1""".format(uri=uri)
                 results = query_sparql_endpoint(sparql_query)
                 if results:
-                    similar_songs.append(results[0]['artist']['value']  + 
-                                     ' - ' + results[0]['song']['value'])
+                    similar_songs.append(results[0]['artist']['value'] +
+                                         ' - ' + results[0]['song']['value'])
             return similar_songs
         else:
             print('Could not find similar songs.')
+
 
 def list_to_sparql(input_list):
     """Turns a list of items into sparql format. Adds ';' in between items
@@ -361,19 +361,21 @@ def list_to_sparql(input_list):
     sparql_str = ""
     for item in input_list:
         sparql_str += f"{item} ; "
-    sparql_str = sparql_str[:-2] + " ."  
+    sparql_str = sparql_str[:-2] + " ."
     return sparql_str
+
 
 def SPARQL_builder(query_type, filters):
     """Creates sparql queries based on query type and filters
 
     Arguments:
     query_type (string): Possible values are 'artist', 'album' or 'song'
-    filters (list): List of filters, e.g. ["schema:genre'Pop'", "dcterms:language 'eng'"]
+    filters (list): List of filters,
+    e.g. ["schema:genre'Pop'", "dcterms:language 'eng'"]
 
     Returns:
     string: Sparql query"""
-    
+
     prefixes = """
         PREFIX mo: <http://purl.org/ontology/mo/>
         PREFIX schema: <http://schema.org/>
@@ -384,7 +386,7 @@ def SPARQL_builder(query_type, filters):
         """
     if query_type == 'artist':
         query = prefixes + """
-            SELECT DISTINCT ?Name 
+            SELECT DISTINCT ?Name
             WHERE {
             {
             ?artist a wsb:Artist_Person;  foaf:name ?Name ;
@@ -408,7 +410,8 @@ def get_recommendations(user_query):
     intent = classify_intent(user_query)
 
     if intent == "artist":
-        with open('embeddings/Name dictionaries/artistnames.json', 'r') as json_file: 
+        with open('embeddings/Name dictionaries/artistnames.json',
+                  'r') as json_file:
             artist_list = json.load(json_file)
         artist = match_to_list(query, artist_list)
         if artist:
@@ -416,30 +419,36 @@ def get_recommendations(user_query):
             print('Here are 3 artists similar to {}:'.format(artist))
             for artist in similar:
                 print('-', artist)
-        else: 
+        else:
             filters = []
-            # Check if there are genres in the query and if so add them to filters dict
-            with open('embeddings/Name dictionaries/genres.json', 'r') as json_file: 
+            # Check if there are genres in the query and if so add them
+            # to filters dict
+            with open('embeddings/Name dictionaries/genres.json',
+                      'r') as json_file:
                 genre_list = json.load(json_file)
             genre = match_to_list(query, genre_list)
 
-            if genre: filters.append("schema:genre '{}'".format(genre))
+            if genre:
+                filters.append("schema:genre '{}'".format(genre))
 
             # Check for location
             location = get_location(query)
             if location:
-                filters.append('wsb:location [ wsb:country "{}" ]'.format(location))
+                filters.append('wsb:location [ wsb:country "{}" ]'.format(
+                               location))
             # Check for other filters
 
             # Build sparql query and get results
             if filters:
-                results = query_sparql_endpoint(SPARQL_builder('artist', filters))
+                results = query_sparql_endpoint(SPARQL_builder('artist',
+                                                               filters))
                 for name_obj in results:
                     name = name_obj['Name']['value']
                     print('-', name)
-    
+
     elif intent == "album":
-        with open('embeddings/Name dictionaries/albumtitles.json', 'r') as json_file: 
+        with open('embeddings/Name dictionaries/albumtitles.json',
+                  'r') as json_file:
             album_list = json.load(json_file)
         album = match_to_list(query, album_list)
         if album:
@@ -447,9 +456,10 @@ def get_recommendations(user_query):
             print('Here are 3 albums similar to {}:'.format(album))
             for album in similar:
                 print(album)
-    
+
     elif intent == "song":
-        with open('embeddings/Name dictionaries/songtitles.json', 'r') as json_file: 
+        with open('embeddings/Name dictionaries/songtitles.json',
+                  'r') as json_file:
             song_list = json.load(json_file)
         song = match_to_list(query, song_list)
 
@@ -461,13 +471,15 @@ def query_sparql_endpoint(query):
     query (string): User query
 
     Returns:
-    list of dict: A list of dictionaries with the results in JSON format. 
+    list of dict: A list of dictionaries with the results in JSON format.
     A dictionary contains variables returned by the sparql endbpoint as keys
     and the results as values.
     """
     url = 'http://wasabi.inria.fr/sparql'
-    results = requests.get(url, params={'query': query, 'format': 'json'}).json()
+    results = requests.get(url,
+                           params={'query': query, 'format': 'json'}).json()
     return results['results']['bindings']
+
 
 if __name__ == '__main__':
     query = click.prompt('Hi! How can I help?\n', type=str, prompt_suffix='>')
