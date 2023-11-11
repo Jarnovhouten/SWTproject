@@ -12,13 +12,16 @@ import argparse
 
 def create_arg_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-eval", "--eval", action="store_true",
+    parser.add_argument("-eval", "--eval",
+                        action="store_true",
                         help="Store results in excel file for evaluation.")
-    parser.add_argument("-out", "--output_file", type=str, default='results.xlsx',
-                        help="Output file to store results in, should be .xlsx")
-    parser.add_argument("-test", "--test_file", type=str, default='test_data.xlsx',
+    parser.add_argument("-out", "--output_file", type=str,
+                        default='results.xlsx',
+                        help=".xlsx output file to store results in")
+    parser.add_argument("-test", "--test_file", type=str,
+                        default='test_data.xlsx',
                         help="Test file with queries, should be .xlsx")
-    
+
     args = parser.parse_args()
     return args
 
@@ -64,16 +67,17 @@ def match_to_list(query, name_list):
     string: Matched item from given list
     Returns None if there is no match
     """
-    
+
     # Convert name_list to lowercase for case-insensitive matching
     lowercase_name_list = [name.lower() for name in name_list]
     # Regular expression to match names
-    pattern = r'\b(?:' + '|'.join(re.escape(name) for name in lowercase_name_list) + r')\b'
-    
+    pattern = r'\b(?:' + '|'.join(re.escape(name) for name in
+                                  lowercase_name_list) + r')\b'
+
     # convert query to lowercase
     lowercase_query = query.lower()
 
-    #Initialize list of matches
+    # Initialize list of matches
     matches = []
     # find matches
     matches_lower = re.findall(pattern, lowercase_query)
@@ -82,13 +86,13 @@ def match_to_list(query, name_list):
         for i in range(len(matches_lower)):
             matched_index = lowercase_name_list.index(matches_lower[i])
             matches.append(name_list[matched_index])
-    
-    #make matches consist of only unique items
+
+    # make matches consist of only unique items
     matches = list(set(matches))
     if len(matches) == 1:
         return matches[0]
     elif len(matches) > 1:
-        #assume the longest matching string is the target
+        # assume the longest matching string is the target
         match = max(matches, key=len)
         return match
     else:
@@ -471,7 +475,7 @@ def get_recommendations(query):
         # Check if there are genres in the query and if so add them
         # to filters dict
         with open('embeddings/Name dictionaries/genres.json',
-                    'r') as json_file:
+                  'r') as json_file:
             genre_list = json.load(json_file)
         genre = match_to_list(query, genre_list)
 
@@ -488,8 +492,7 @@ def get_recommendations(query):
         if filters:
             q_type = 'fil'
             results = query_sparql_endpoint(SPARQL_builder('artist',
-                                                            filters,
-                                                            number))
+                                            filters, number))
             if results:
                 for i, name_obj in enumerate(results):
                     if i <= number:
@@ -498,7 +501,7 @@ def get_recommendations(query):
                         recommendations.append(name)
         else:
             with open('embeddings/Name dictionaries/artistnames.json',
-                    'r') as json_file:
+                      'r') as json_file:
                 artist_list = json.load(json_file)
             artist = match_to_list(query, artist_list)
             if artist:
@@ -506,14 +509,14 @@ def get_recommendations(query):
                 entity = artist
                 similar = find_similar_artist(artist, number)
                 for artist in similar:
-                    recommendations.append(artist)            
+                    recommendations.append(artist)
 
     elif intent == "album":
         filters = []
         # Check if there are genres in the query and if so add them
         # to filters dict
         with open('embeddings/Name dictionaries/genres.json',
-                    'r') as json_file:
+                  'r') as json_file:
             genre_list = json.load(json_file)
         genre = match_to_list(query, genre_list)
 
@@ -524,8 +527,7 @@ def get_recommendations(query):
         if filters:
             q_type = 'fil'
             results = query_sparql_endpoint(SPARQL_builder('album',
-                                                            filters,
-                                                            number))
+                                            filters, number))
             if results:
                 for i, name_obj in enumerate(results):
                     if i <= number:
@@ -534,7 +536,7 @@ def get_recommendations(query):
                         recommendations.append(artist + ' - ' + title)
         else:
             with open('embeddings/Name dictionaries/albumtitles.json',
-                  'r') as json_file:
+                      'r') as json_file:
                 album_list = json.load(json_file)
             album = match_to_list(query, album_list)
             if album:
@@ -549,20 +551,19 @@ def get_recommendations(query):
         # to filters dict
         # Make sure genre is added last in the dict for songs
         with open('embeddings/Name dictionaries/genres.json',
-                'r') as json_file:
+                  'r') as json_file:
             genre_list = json.load(json_file)
         genre = match_to_list(query, genre_list)
 
         if genre:
             filters.append("schema:album ?album. ?album mo:genre '{}'"
-                        .format(genre))
+                           .format(genre))
 
         # Build sparql query and get results
         if filters:
             q_type = 'fil'
             results = query_sparql_endpoint(SPARQL_builder('song',
-                                                        filters,
-                                                        number))
+                                            filters, number))
             if results:
                 for i, name_obj in enumerate(results):
                     if i <= number:
@@ -571,7 +572,7 @@ def get_recommendations(query):
                         recommendations.append(artist + ' - ' + title)
         else:
             with open('embeddings/Name dictionaries/songtitles.json',
-                    'r') as json_file:
+                      'r') as json_file:
                 song_list = json.load(json_file)
             song = match_to_list(query, song_list)
             if song:
@@ -580,7 +581,7 @@ def get_recommendations(query):
                 similar = find_similar_song(song, number)
                 for song in similar:
                     recommendations.append(song)
-    
+
     if q_type == 'sim':
         return [intent, number, q_type, entity, None, None, recommendations]
     if q_type == 'fil':
@@ -610,19 +611,24 @@ if __name__ == '__main__':
     args = create_arg_parser()
 
     if not args.eval:
-        query = click.prompt('Hi! How can I help?\n', type=str, prompt_suffix='>')
+        query = click.prompt('Hi! How can I help?\n',
+                             type=str,
+                             prompt_suffix='>')
         results = get_recommendations(query)
 
         if results:
             if results[2] == 'sim':
-                print('Here are {} {}s similar to {}:'.format(results[1], results[0], results[3]))
+                print('Here are {} {}s similar to {}:'.format(results[1],
+                                                              results[0],
+                                                              results[3]))
             else:
                 genre, location = '', ''
                 if results[3]:
                     genre = 'with genre {}'.format(results[3])
                 if results[4]:
                     location = 'from {}'.format(results[4])
-                print('Here are {} {}s'.format(results[1], results[0]), genre, location, ':')
+                print('Here are {} {}s'.format(results[1],
+                      results[0]), genre, location, ':')
             for result in results[-1]:
                 print('-', result)
         else:
@@ -630,24 +636,36 @@ if __name__ == '__main__':
     else:
         # Read in test data
         test_df = pd.read_excel(args.test_file, header=0)
-        
+
         # Get eval lists for each recommendation
         queries = test_df['true_query'].tolist()
         results = []
         for query in queries:
             results.append(get_recommendations(query))
 
-        result_df = pd.DataFrame(results, columns=['pred_intent', 'pred_number', 'pred_type', 'pred_entity', 'pred_genre', 'pred_location', 'pred_results'])
+        result_df = pd.DataFrame(results, columns=['pred_intent',
+                                                   'pred_number',
+                                                   'pred_type',
+                                                   'pred_entity',
+                                                   'pred_genre',
+                                                   'pred_location',
+                                                   'pred_results'])
         result_df['corrected_genre'] = ''
 
         combined_df = pd.concat([test_df['true_query'],
-                                 test_df['true_intent'], result_df['pred_intent'],
-                                 test_df['true_number'], result_df['pred_number'],
-                                 test_df['true_type'], result_df['pred_type'],
-                                 test_df['true_entity'], result_df['pred_entity'],
-                                 test_df['true_genre'], result_df['pred_genre'], result_df['corrected_genre'],
-                                 test_df['true_location'], result_df['pred_location'],
+                                 test_df['true_intent'],
+                                 result_df['pred_intent'],
+                                 test_df['true_number'],
+                                 result_df['pred_number'],
+                                 test_df['true_type'],
+                                 result_df['pred_type'],
+                                 test_df['true_entity'],
+                                 result_df['pred_entity'],
+                                 test_df['true_genre'],
+                                 result_df['pred_genre'],
+                                 result_df['corrected_genre'],
+                                 test_df['true_location'],
+                                 result_df['pred_location'],
                                  result_df['pred_results']], axis=1)
-        
-        combined_df.to_excel(args.output_file)
 
+        combined_df.to_excel(args.output_file)
