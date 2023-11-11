@@ -398,7 +398,7 @@ def SPARQL_builder(query_type, filters, number):
         query += '} } ORDER BY RAND() LIMIT '
         query += str(number)
         return query
-    if query_type == 'album':
+    elif query_type == 'album':
         query = prefixes + """
         SELECT DISTINCT ?title ?artist
         WHERE {
@@ -409,6 +409,18 @@ def SPARQL_builder(query_type, filters, number):
         query += list_to_sparql(filters)
         query += '?artistURI rdfs:label ?artist .'
         query += '} ORDER BY RAND() LIMIT '
+        query += str(number)
+        return query
+    elif query_type == 'song':
+        query = prefixes + """
+        SELECT DISTINCT ?title ?artist
+        WHERE {
+        ?song a wsb:Song;
+            wsb:title_without_accent ?title ;
+            mo:performer ?artistURI ;
+        """
+        query += list_to_sparql(filters)
+        query += '?artistURI rdfs:label ?artist. } ORDER BY RAND() LIMIT '
         query += str(number)
         return query
 
@@ -508,6 +520,30 @@ def get_recommendations(user_query):
             print('Here are {} similar song(s) to {}:'.format(number, song))
             for song in similar:
                 print(song)
+        else:
+            filters = []
+            # Check if there are genres in the query and if so add them
+            # to filters dict
+            # Make sure genre is added last in the dict for songs
+            with open('embeddings/Name dictionaries/genres.json',
+                      'r') as json_file:
+                genre_list = json.load(json_file)
+            genre = match_to_list(query, genre_list)
+            
+            if genre:
+                filters.append("schema:album ?album. ?album mo:genre '{}'".format(genre))
+
+            # Build sparql query and get results
+            if filters:
+                results = query_sparql_endpoint(SPARQL_builder('song',
+                                                               filters,
+                                                               number))
+                for i, name_obj in enumerate(results):
+                    if i <= number:
+                        artist = name_obj['artist']['value']
+                        title = name_obj['title']['value']
+                        print('-', artist, '-', title)
+
 
 
 def query_sparql_endpoint(query):
