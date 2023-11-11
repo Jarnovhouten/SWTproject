@@ -155,7 +155,7 @@ def find_similar_artist(artist, number=1, return_uri=False):
         # Load in trained knn model, entities and embeddings
         knn_model = joblib.load('embeddings/artist_knn_model.pkl')
         entities = np.load('embeddings/artist_entities.npy')
-        embeddings = np.load('embeddings/artist_embeddings_noab.npy')
+        embeddings = np.load('embeddings/artist_embeddings.npy')
         # Find embedding of given artist and use this to find similar
         # artist uris with knn model
         query_embedding = (
