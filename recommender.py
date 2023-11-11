@@ -38,6 +38,18 @@ def classify_intent(query):
 
 
 def match_to_list(query, name_list):
+    """Checks if an item from the list is found in the query and
+    returns this item if so.
+
+    Argument:
+    query (string): User query
+    name_list (list): List of items to match
+
+    Returns:
+    string: Matched item from given list
+    Returns None if there is no match
+    """
+    
     # Convert name_list to lowercase for case-insensitive matching
     lowercase_name_list = [name.lower() for name in name_list]
     # Regular expression to match names
