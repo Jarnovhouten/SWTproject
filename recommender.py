@@ -51,6 +51,7 @@ def match_to_list(query, name_list):
     # find matches
     matches_lower = re.findall(pattern, lowercase_query)
     if matches_lower:
+        # convert lowercase matches back to proper name via list indexes
         for i in range(len(matches_lower)):
             matched_index = lowercase_name_list.index(matches_lower[i])
             matches.append(name_list[matched_index])
