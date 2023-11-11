@@ -38,46 +38,33 @@ def classify_intent(query):
 
 
 def match_to_list(query, name_list):
-    """Checks if an item from the list is found in the query and
-    returns this item if so.
-
-    Argument:
-    query (string): User query
-    name_list (list): List of items to match
-
-    Returns:
-    string: Matched item from given list
-    Returns None if there is no match
-    """
     # Convert name_list to lowercase for case-insensitive matching
     lowercase_name_list = [name.lower() for name in name_list]
     # Regular expression to match names
-    pattern = r'\b(?:' + '|'.join(re.escape(name) for name in
-                                  lowercase_name_list) + r')\b'
-
+    pattern = r'\b(?:' + '|'.join(re.escape(name) for name in lowercase_name_list) + r')\b'
+    
     # convert query to list
-    words = query.split()
+    lowercase_query = query.lower()
 
-    for i in range(len(words)):
-        index = i+1
-        wordlist = words[-index:]
-        word_string = ' '.join(wordlist).lower()
-        match = re.findall(pattern, word_string)
-
-        # Add original capitalized string to matches
-        if match:
-            matched_index = lowercase_name_list.index(match[0])
+    #Initialize list of matches
+    matches = []
+    # find matches
+    matches_lower = re.findall(pattern, lowercase_query)
+    if matches_lower:
+        for i in range(len(matches_lower)):
+            matched_index = lowercase_name_list.index(matches_lower[i])
             matches.append(name_list[matched_index])
     
     #make matches consist of only unique items
     matches = list(set(matches))
-    if len(matches) > 1:
+    if len(matches) == 1:
+        return matches[0]
+    elif len(matches) > 1:
         #assume the longest matching string is the target
         match = max(matches, key=len)
         return match
     else:
-        return matches
-
+        return None
 
 
 def get_number(query):
