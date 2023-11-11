@@ -365,13 +365,14 @@ def list_to_sparql(input_list):
     return sparql_str
 
 
-def SPARQL_builder(query_type, filters):
+def SPARQL_builder(query_type, filters, number):
     """Creates sparql queries based on query type and filters
 
     Arguments:
     query_type (string): Possible values are 'artist', 'album' or 'song'
     filters (list): List of filters,
     e.g. ["schema:genre'Pop'", "dcterms:language 'eng'"]
+    number (int): Number of results to limit the query to
 
     Returns:
     string: Sparql query"""
@@ -394,7 +395,21 @@ def SPARQL_builder(query_type, filters):
         query += list_to_sparql(filters)
         query += '}  UNION { ?artist a wsb:Artist_Group; foaf:name ?Name ;'
         query += list_to_sparql(filters)
-        query += '} } ORDER BY RAND() LIMIT 3'
+        query += '} } ORDER BY RAND() LIMIT '
+        query += str(number)
+        return query
+    if query_type == 'album':
+        query = prefixes + """
+        SELECT DISTINCT ?title ?artist
+        WHERE {
+        ?album a wsb:Album ;
+            dcterms:title ?title ;
+            mo:performer ?artistURI ;        
+        """
+        query += list_to_sparql(filters)
+        query += '?artistURI rdfs:label ?artist .'
+        query += '} ORDER BY RAND() LIMIT '
+        query += str(number)
         return query
 
 
@@ -439,14 +454,14 @@ def get_recommendations(user_query):
             if location:
                 filters.append('wsb:location [ wsb:country "{}" ]'.format(
                                location))
-            # Check for other filters
 
             # Build sparql query and get results
             if filters:
                 results = query_sparql_endpoint(SPARQL_builder('artist',
-                                                               filters))
+                                                               filters,
+                                                               number))
                 for i, name_obj in enumerate(results):
-                    while i <= number:
+                    if i <= number:
                         name = name_obj['Name']['value']
                         print('-', name)
 
@@ -460,6 +475,28 @@ def get_recommendations(user_query):
             print('Here are {} albums similar to {}:'.format(number, album))
             for album in similar:
                 print(album)
+        else:
+            filters = []
+            # Check if there are genres in the query and if so add them
+            # to filters dict
+            with open('embeddings/Name dictionaries/genres.json',
+                      'r') as json_file:
+                genre_list = json.load(json_file)
+            genre = match_to_list(query, genre_list)
+            
+            if genre:
+                filters.append("mo:genre '{}'".format(genre))
+
+            # Build sparql query and get results
+            if filters:
+                results = query_sparql_endpoint(SPARQL_builder('album',
+                                                               filters,
+                                                               number))
+                for i, name_obj in enumerate(results):
+                    if i <= number:
+                        artist = name_obj['artist']['value']
+                        title = name_obj['title']['value']
+                        print('-', artist, '-', title)
 
     elif intent == "song":
         with open('embeddings/Name dictionaries/songtitles.json',
