@@ -43,7 +43,7 @@ def match_to_list(query, name_list):
     # Regular expression to match names
     pattern = r'\b(?:' + '|'.join(re.escape(name) for name in lowercase_name_list) + r')\b'
     
-    # convert query to list
+    # convert query to lowercase
     lowercase_query = query.lower()
 
     #Initialize list of matches
