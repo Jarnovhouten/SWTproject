@@ -64,10 +64,20 @@ def match_to_list(query, name_list):
         word_string = ' '.join(wordlist).lower()
         match = re.findall(pattern, word_string)
 
-        # Stop searching once a match is found
+        # Add original capitalized string to matches
         if match:
             matched_index = lowercase_name_list.index(match[0])
-            return name_list[matched_index]
+            matches.append(name_list[matched_index])
+    
+    #make matches consist of only unique items
+    matches = list(set(matches))
+    if len(matches) > 1:
+        #assume the longest matching string is the target
+        match = max(matches, key=len)
+        return match
+    else:
+        return matches
+
 
 
 def get_number(query):
