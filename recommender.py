@@ -6,6 +6,21 @@ import json
 import re
 import spacy
 from text_to_num import alpha2digit
+import pandas as pd
+import argparse
+
+
+def create_arg_parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-eval", "--eval", action="store_true",
+                        help="Store results in excel file for evaluation.")
+    parser.add_argument("-out", "--output_file", type=str, default='results.xlsx',
+                        help="Output file to store results in, should be .xlsx")
+    parser.add_argument("-test", "--test_file", type=str, default='test_data.xlsx',
+                        help="Test file with queries, should be .xlsx")
+    
+    args = parser.parse_args()
+    return args
 
 
 def classify_intent(query):
@@ -182,8 +197,6 @@ def find_similar_artist(artist, number=1, return_uri=False):
             return sim_artists
         else:
             return sim_uris
-    else:
-        print("Could not find similar artists.")
 
 
 def find_similar_album(album, number=1, return_uri=False):
@@ -250,8 +263,6 @@ def find_similar_album(album, number=1, return_uri=False):
             return sim_albums
         else:
             return sim_uris
-    else:
-        print("Could not find similar albums.")
 
 
 def find_similar_song(song, number=1):
@@ -353,8 +364,6 @@ def find_similar_song(song, number=1):
                     similar_songs.append(results[0]['artist']['value'] +
                                          ' - ' + results[0]['song']['value'])
             return similar_songs
-        else:
-            print('Could not find similar songs.')
 
 
 def list_to_sparql(input_list):
@@ -435,125 +444,149 @@ def SPARQL_builder(query_type, filters, number):
         return query
 
 
-def get_recommendations(user_query):
+def get_recommendations(query):
     """Prints out song, artist or album recommendations based on a given query
 
-    Argument:
+    Arguments:
     user_query (string): User query
+    eval (bool): If set to True, function will return a list containing:
+        for similarity queries: [intent, number, sim, entity]
+        for filter queries: [intent, number, fil, genre, location]
 
-    Returns: None
-    Prints recommendations. One recommendation per line."""
+    Returns: results if eval=False
+    Returns: eval list including results if eval=True
+    """
 
-    intent = classify_intent(user_query)
-    number = get_number(user_query)
+    intent = classify_intent(query)
+    number = get_number(query)
+    genre, location, q_type = None, None, None
+
     if not number:
         number = 3
 
+    recommendations = []
+
     if intent == "artist":
-        with open('embeddings/Name dictionaries/artistnames.json',
-                  'r') as json_file:
-            artist_list = json.load(json_file)
-        artist = match_to_list(query, artist_list)
-        if artist:
-            similar = find_similar_artist(artist, number)
-            print('Here are {} artists similar to {}:'.format(number, artist))
-            for artist in similar:
-                print('-', artist)
-        else:
-            filters = []
-            # Check if there are genres in the query and if so add them
-            # to filters dict
-            with open('embeddings/Name dictionaries/genres.json',
-                      'r') as json_file:
-                genre_list = json.load(json_file)
-            genre = match_to_list(query, genre_list)
+        filters = []
+        # Check if there are genres in the query and if so add them
+        # to filters dict
+        with open('embeddings/Name dictionaries/genres.json',
+                    'r') as json_file:
+            genre_list = json.load(json_file)
+        genre = match_to_list(query, genre_list)
 
-            if genre:
-                filters.append("schema:genre '{}'".format(genre))
+        if genre:
+            filters.append("schema:genre '{}'".format(genre))
 
-            # Check for location
-            location = get_location(query)
-            if location:
-                filters.append('wsb:location [ wsb:country "{}" ]'.format(
-                               location))
+        # Check for location
+        location = get_location(query)
+        if location:
+            filters.append('wsb:location [ wsb:country "{}" ]'.format(
+                            location))
 
-            # Build sparql query and get results
-            if filters:
-                results = query_sparql_endpoint(SPARQL_builder('artist',
-                                                               filters,
-                                                               number))
+        # Build sparql query and get results
+        if filters:
+            q_type = 'fil'
+            results = query_sparql_endpoint(SPARQL_builder('artist',
+                                                            filters,
+                                                            number))
+            if results:
                 for i, name_obj in enumerate(results):
                     if i <= number:
                         name = name_obj['Name']['value']
-                        print('-', name)
+                        entity = name
+                        recommendations.append(name)
+        else:
+            with open('embeddings/Name dictionaries/artistnames.json',
+                    'r') as json_file:
+                artist_list = json.load(json_file)
+            artist = match_to_list(query, artist_list)
+            if artist:
+                q_type = 'sim'
+                entity = artist
+                similar = find_similar_artist(artist, number)
+                for artist in similar:
+                    recommendations.append(artist)            
 
     elif intent == "album":
-        with open('embeddings/Name dictionaries/albumtitles.json',
-                  'r') as json_file:
-            album_list = json.load(json_file)
-        album = match_to_list(query, album_list)
-        if album:
-            similar = find_similar_album(album, number)
-            print('Here are {} albums similar to {}:'.format(number, album))
-            for album in similar:
-                print(album)
-        else:
-            filters = []
-            # Check if there are genres in the query and if so add them
-            # to filters dict
-            with open('embeddings/Name dictionaries/genres.json',
-                      'r') as json_file:
-                genre_list = json.load(json_file)
-            genre = match_to_list(query, genre_list)
+        filters = []
+        # Check if there are genres in the query and if so add them
+        # to filters dict
+        with open('embeddings/Name dictionaries/genres.json',
+                    'r') as json_file:
+            genre_list = json.load(json_file)
+        genre = match_to_list(query, genre_list)
 
-            if genre:
-                filters.append("mo:genre '{}'".format(genre))
+        if genre:
+            filters.append("mo:genre '{}'".format(genre))
 
-            # Build sparql query and get results
-            if filters:
-                results = query_sparql_endpoint(SPARQL_builder('album',
-                                                               filters,
-                                                               number))
+        # Build sparql query and get results
+        if filters:
+            q_type = 'fil'
+            results = query_sparql_endpoint(SPARQL_builder('album',
+                                                            filters,
+                                                            number))
+            if results:
                 for i, name_obj in enumerate(results):
                     if i <= number:
                         artist = name_obj['artist']['value']
                         title = name_obj['title']['value']
-                        print('-', artist, '-', title)
-
+                        recommendations.append(artist + ' - ' + title)
+        else:
+            with open('embeddings/Name dictionaries/albumtitles.json',
+                  'r') as json_file:
+                album_list = json.load(json_file)
+            album = match_to_list(query, album_list)
+            if album:
+                q_type = 'sim'
+                entity = album
+                similar = find_similar_album(album, number)
+                for album in similar:
+                    recommendations.append(album)
     elif intent == "song":
-        with open('embeddings/Name dictionaries/songtitles.json',
-                  'r') as json_file:
-            song_list = json.load(json_file)
-        song = match_to_list(query, song_list)
-        if song:
-            similar = find_similar_song(song, number)
-            print('Here are {} similar song(s) to {}:'.format(number, song))
-            for song in similar:
-                print(song)
-        else:
-            filters = []
-            # Check if there are genres in the query and if so add them
-            # to filters dict
-            # Make sure genre is added last in the dict for songs
-            with open('embeddings/Name dictionaries/genres.json',
-                      'r') as json_file:
-                genre_list = json.load(json_file)
-            genre = match_to_list(query, genre_list)
+        filters = []
+        # Check if there are genres in the query and if so add them
+        # to filters dict
+        # Make sure genre is added last in the dict for songs
+        with open('embeddings/Name dictionaries/genres.json',
+                'r') as json_file:
+            genre_list = json.load(json_file)
+        genre = match_to_list(query, genre_list)
 
-            if genre:
-                filters.append("schema:album ?album. ?album mo:genre '{}'"
-                               .format(genre))
+        if genre:
+            filters.append("schema:album ?album. ?album mo:genre '{}'"
+                        .format(genre))
 
-            # Build sparql query and get results
-            if filters:
-                results = query_sparql_endpoint(SPARQL_builder('song',
-                                                               filters,
-                                                               number))
+        # Build sparql query and get results
+        if filters:
+            q_type = 'fil'
+            results = query_sparql_endpoint(SPARQL_builder('song',
+                                                        filters,
+                                                        number))
+            if results:
                 for i, name_obj in enumerate(results):
                     if i <= number:
                         artist = name_obj['artist']['value']
                         title = name_obj['title']['value']
-                        print('-', artist, '-', title)
+                        recommendations.append(artist + ' - ' + title)
+        else:
+            with open('embeddings/Name dictionaries/songtitles.json',
+                    'r') as json_file:
+                song_list = json.load(json_file)
+            song = match_to_list(query, song_list)
+            if song:
+                q_type = 'sim'
+                entity = song
+                similar = find_similar_song(song, number)
+                for song in similar:
+                    recommendations.append(song)
+    
+    if q_type == 'sim':
+        return [intent, number, q_type, entity, None, None, recommendations]
+    if q_type == 'fil':
+        return [intent, number, q_type, None, genre, location, recommendations]
+    else:
+        return [None, None, 'unk', None, None, None, []]
 
 
 def query_sparql_endpoint(query):
@@ -574,5 +607,47 @@ def query_sparql_endpoint(query):
 
 
 if __name__ == '__main__':
-    query = click.prompt('Hi! How can I help?\n', type=str, prompt_suffix='>')
-    get_recommendations(query)
+    args = create_arg_parser()
+
+    if not args.eval:
+        query = click.prompt('Hi! How can I help?\n', type=str, prompt_suffix='>')
+        results = get_recommendations(query)
+
+        if results:
+            if results[2] == 'sim':
+                print('Here are {} {}s similar to {}:'.format(results[1], results[0], results[3]))
+            else:
+                genre, location = '', ''
+                if results[3]:
+                    genre = 'with genre {}'.format(results[3])
+                if results[4]:
+                    location = 'from {}'.format(results[4])
+                print('Here are {} {}s'.format(results[1], results[0]), genre, location, ':')
+            for result in results[-1]:
+                print('-', result)
+        else:
+            print('I could not find anything based on your request.')
+    else:
+        # Read in test data
+        test_df = pd.read_excel(args.test_file, header=0)
+        
+        # Get eval lists for each recommendation
+        queries = test_df['true_query'].tolist()
+        results = []
+        for query in queries:
+            results.append(get_recommendations(query))
+
+        result_df = pd.DataFrame(results, columns=['pred_intent', 'pred_number', 'pred_type', 'pred_entity', 'pred_genre', 'pred_location', 'pred_results'])
+        result_df['corrected_genre'] = ''
+
+        combined_df = pd.concat([test_df['true_query'],
+                                 test_df['true_intent'], result_df['pred_intent'],
+                                 test_df['true_number'], result_df['pred_number'],
+                                 test_df['true_type'], result_df['pred_type'],
+                                 test_df['true_entity'], result_df['pred_entity'],
+                                 test_df['true_genre'], result_df['pred_genre'], result_df['corrected_genre'],
+                                 test_df['true_location'], result_df['pred_location'],
+                                 result_df['pred_results']], axis=1)
+        
+        combined_df.to_excel(args.output_file)
+
