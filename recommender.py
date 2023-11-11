@@ -408,6 +408,9 @@ def get_recommendations(user_query):
     Prints recommendations. One recommendation per line."""
 
     intent = classify_intent(user_query)
+    number = get_number(user_query)
+    if not number:
+        number = 3
 
     if intent == "artist":
         with open('embeddings/Name dictionaries/artistnames.json',
@@ -415,8 +418,8 @@ def get_recommendations(user_query):
             artist_list = json.load(json_file)
         artist = match_to_list(query, artist_list)
         if artist:
-            similar = find_similar_artist(artist, 3)
-            print('Here are 3 artists similar to {}:'.format(artist))
+            similar = find_similar_artist(artist, number)
+            print('Here are {} artists similar to {}:'.format(number, artist))
             for artist in similar:
                 print('-', artist)
         else:
@@ -442,9 +445,10 @@ def get_recommendations(user_query):
             if filters:
                 results = query_sparql_endpoint(SPARQL_builder('artist',
                                                                filters))
-                for name_obj in results:
-                    name = name_obj['Name']['value']
-                    print('-', name)
+                for i, name_obj in enumerate(results):
+                    while i <= number:
+                        name = name_obj['Name']['value']
+                        print('-', name)
 
     elif intent == "album":
         with open('embeddings/Name dictionaries/albumtitles.json',
@@ -452,8 +456,8 @@ def get_recommendations(user_query):
             album_list = json.load(json_file)
         album = match_to_list(query, album_list)
         if album:
-            similar = find_similar_album(album, 3)
-            print('Here are 3 albums similar to {}:'.format(album))
+            similar = find_similar_album(album, number)
+            print('Here are {} albums similar to {}:'.format(number, album))
             for album in similar:
                 print(album)
 
@@ -462,6 +466,11 @@ def get_recommendations(user_query):
                   'r') as json_file:
             song_list = json.load(json_file)
         song = match_to_list(query, song_list)
+        if song:
+            similar = find_similar_song(song, number)
+            print('Here are {} similar song(s) to {}:'.format(number, song))
+            for song in similar:
+                print(song)
 
 
 def query_sparql_endpoint(query):
