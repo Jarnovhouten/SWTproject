@@ -404,7 +404,7 @@ def SPARQL_builder(query_type, filters, number):
         WHERE {
         ?album a wsb:Album ;
             dcterms:title ?title ;
-            mo:performer ?artistURI ;        
+            mo:performer ?artistURI ;
         """
         query += list_to_sparql(filters)
         query += '?artistURI rdfs:label ?artist .'
@@ -495,7 +495,7 @@ def get_recommendations(user_query):
                       'r') as json_file:
                 genre_list = json.load(json_file)
             genre = match_to_list(query, genre_list)
-            
+
             if genre:
                 filters.append("mo:genre '{}'".format(genre))
 
@@ -529,9 +529,10 @@ def get_recommendations(user_query):
                       'r') as json_file:
                 genre_list = json.load(json_file)
             genre = match_to_list(query, genre_list)
-            
+
             if genre:
-                filters.append("schema:album ?album. ?album mo:genre '{}'".format(genre))
+                filters.append("schema:album ?album. ?album mo:genre '{}'"
+                               .format(genre))
 
             # Build sparql query and get results
             if filters:
@@ -543,7 +544,6 @@ def get_recommendations(user_query):
                         artist = name_obj['artist']['value']
                         title = name_obj['title']['value']
                         print('-', artist, '-', title)
-
 
 
 def query_sparql_endpoint(query):
