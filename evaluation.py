@@ -1,3 +1,8 @@
+"""
+This script calculates precision, recall and f1-score for the query components
+based on the results.xlsx file created by recommender.py.
+"""
+
 import pandas as pd
 from sklearn.metrics import precision_recall_fscore_support
 
