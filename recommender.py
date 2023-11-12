@@ -1,3 +1,29 @@
+"""
+This script runs a command line chatbot that will recommend songs, albums or
+artists. 
+
+An example of a query and answer:
+> Can you recommend three artists like Ed Sheeran?
+Here are 3 artists similar to Ed Sheeran:
+- Connie Kaldor
+- Wendy O. Williams
+- Lorraine Bowen
+
+It is also possible to create an evaluation .xlsx file with the query,
+selected query components (both true and predicted). It will have an extra
+column to manually correct the genre predictions.
+
+In the case of evaluation, the script expects there to be an annotated
+test data set (.xlsx) with the following columns: true_query, true_intent,
+true_number, true_type, true_entity, true_genre, true_location.
+
+To run the recommender as a chatbot, use:
+python recommender.py
+
+To create an evaluation file, use:
+python recommender.py -eval [-out 'outfile.xlsx] [-test 'testfile.xlsx']
+"""
+
 import click
 import requests
 import joblib
